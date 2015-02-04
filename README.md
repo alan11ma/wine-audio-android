@@ -12,6 +12,7 @@ By default only x86 PIE(position independent executable) is build and can only b
 
 WINE- In Ubuntun/Debain host create a x86 build environment following pelya's xserver-debian guide:
 <https://github.com/pelya/commandergenius/tree/sdl_android/project/jni/application/xserver-debian>
+
 Detail steps:
 
 Prepare debootstrp:
