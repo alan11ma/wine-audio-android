@@ -5,6 +5,7 @@ Project contains source for a Android exectuable that read pcm stream from a nam
 Includes a complement patch that modify Wine-1.4.1 alsa driver, make it write pcm samples to named pipe. This allows WINE running inside Android "chroot" send pcm stream directly to OpenSL and cut down audio latency.
 
 COMPILATION:
+
 PCM Server- add Android NDK installed directory to $PATH and run ./build.sh, result executable is wine-audio.
 By default only x86 PIE(position independent executable) is build and can only be running in device runing x86 Android 4.1 and greater.
 
@@ -26,6 +27,7 @@ sudo qemu-debootstrap --arch=i386 --verbose \
 
 
 Activate chroot: 
+
 sudo chroot wheezy-x86
 
 Add following to /etc/apt/sources.list in each chroot, then do sudo apt-get update:
@@ -45,7 +47,6 @@ deb-src http://http.debian.net/debian/ wheezy-backports contrib main
 Install development packages:
 
 sudo apt-get install bison libpixman-1-dev \
-
 libxfont-dev libxkbfile-dev libpciaccess-dev \
 
 xutils-dev xcb-proto python-xcbgen xsltproc \
