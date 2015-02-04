@@ -1,7 +1,7 @@
 # wine-audio-android
 The goal of this project is to enable low latency pcm audio for WINE running inside Debian chroot envirnmont ("Debian noroot") in x86 Android tablet device. Instructions for running WINE inside Android <http://forum.xda-developers.com/android/apps-games/guide-run-starcraft-x86-android-tablet-t2993529>
 
-Project contains source for a Android exectuable that read pcm stream from a named pipe and forward it to Android OpenSL 1.0.1 API. PCM stream begins with a header contains pcm format paramters  (Samples per second, no. of channel, sample bit count). This server will allocate a buffered audio player from OpenSL for the pcm format read from steam header. Player creation can fail if the underlining platform cannot support requested format. Audio playback stop when pipe souce is closed.
+Project contains source for a Android exectuable that read pcm stream from a named pipe and forward it to Android OpenSL 1.0.1 API. PCM stream begins with a header contains pcm format paramters  (Samples per second, no. of channel, sample bit count). This server will allocate a buffered audio player from OpenSL for the pcm format read from steam header. Audio player creation can fail if the underlining platform cannot support requested format. Audio playback stop when pipe souce is closed.
 
 Includes a companion patch that modify Wine-1.4.1 alsa driver, make it write pcm samples to named pipe. This allows WINE running inside Android "chroot" send pcm stream directly to OpenSL and cut down audio latency.
 
