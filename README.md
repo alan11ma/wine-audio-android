@@ -113,9 +113,9 @@ Connect Android tablet to host. transfer both wine-audio and winealsa.drv.so to 
 On tablet: Install "Debian noroot" from Google Play:
 
 <https://play.google.com/store/apps/details?id=com.cuntubuntu&hl=en>
-Launch Debain and get to XSDL desktop. Click on Enable Audio icon or install pulseaudio manually.
+Launch Debain and get to XSDL/Xfce desktop. Double click on Enable Audio icon or install pulseaudio manually.
 
-Launch a terminal emulator and install wine:
+Double click User Terminal icon to launch a terminal and install wine:
 
         fakeroot apt-get install wine
 
@@ -163,7 +163,7 @@ In tablet Debian terminal emulator:
         regedit /sdcard/wine-audio.reg
 
 Exit Debian chroot and launch it again to kickstart audio server. Start a wine application/game that play pcm audio.
-If you hear choppy audio, try double value of HalBuflen and/or SndQueueMax, update wine with new value and test again.
+If you hear choppy audio, try double value of HalBuflen and/or SndQueueMax, update wine registry with new value and test again.
 
 
 
