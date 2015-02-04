@@ -32,7 +32,7 @@ Activate chroot:
 
         sudo chroot wheezy-x86
 
-Add following to /etc/apt/sources.list in each chroot, then do sudo apt-get update:
+Add following to /etc/apt/sources.list inside chroot, then do sudo apt-get update:
         
         deb http://http.debian.net/debian/ wheezy contrib main non-free
         deb-src http://http.debian.net/debian/ wheezy main contrib
