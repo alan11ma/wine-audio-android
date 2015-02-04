@@ -150,10 +150,14 @@ In host create a wine-audio.reg file for configure wine audio with following lin
         "SndQueueMax"="4"
 
 Transfer wine-audio.reg to tablet and update wine registry with it:
+
 In host:  
+
         adb push wine-audio.reg /sdcard/
-In tablet debian terminal:  r
-        egedit /sdcard/wine-audio.reg
+        
+In tablet debian terminal:  
+
+        regedit /sdcard/wine-audio.reg
 
 Exit Debian chroot and launch it again to kickstart audio server. Start a wine application/game that play pcm audio.
 If you hear choppy audio, try double value of HalBuflen and/or SndQueueMax, update wine with new value and test again.
