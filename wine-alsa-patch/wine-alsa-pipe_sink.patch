@@ -1,0 +1,251 @@
+--- wine-1.4.1-orig/dlls/winealsa.drv/mmdevdrv.c	2012-06-15 19:17:00.000000000 +0000
++++ wine-1.4.1/dlls/winealsa.drv/mmdevdrv.c	2015-02-04 00:19:58.523905034 +0000
+@@ -44,15 +44,20 @@
+ #include "audiopolicy.h"
+ 
+ #include <alsa/asoundlib.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <sys/ioctl.h>
++
++#define XSDL_ANDROID    1
+ 
+ WINE_DEFAULT_DEBUG_CHANNEL(alsa);
+ WINE_DECLARE_DEBUG_CHANNEL(winediag);
+ 
+ #define NULL_PTR_ERR MAKE_HRESULT(SEVERITY_ERROR, FACILITY_WIN32, RPC_X_NULL_REF_POINTER)
+ 
+-static const REFERENCE_TIME DefaultPeriod = 100000;
+-static const REFERENCE_TIME MinimumPeriod = 50000;
+-#define                     EXTRA_SAFE_RT   40000
++static const REFERENCE_TIME DefaultPeriod = 30000;/*100000;*/
++static const REFERENCE_TIME MinimumPeriod = 20000;/*50000;*/
++#define                     EXTRA_SAFE_RT   10000 /*40000*/
+ 
+ struct ACImpl;
+ typedef struct ACImpl ACImpl;
+@@ -98,6 +103,8 @@ struct ACImpl {
+     snd_pcm_uframes_t alsa_bufsize_frames, alsa_period_frames;
+     snd_pcm_hw_params_t *hw_params; /* does not hold state between calls */
+     snd_pcm_format_t alsa_format;
++    int snd_fd;  /* xsdl sound fifo */
++    int snd_id;  /* fifo id */
+ 
+     IMMDevice *parent;
+ 
+@@ -693,8 +700,11 @@ static ULONG WINAPI AudioClient_AddRef(I
+     return ref;
+ }
+ 
++int g_pipe[4]={0,0,0,0};
++
+ static ULONG WINAPI AudioClient_Release(IAudioClient *iface)
+ {
++    char pipe_fn[MAX_PATH];
+     ACImpl *This = impl_from_IAudioClient(iface);
+     ULONG ref;
+     ref = InterlockedDecrement(&This->ref);
+@@ -708,6 +718,11 @@ static ULONG WINAPI AudioClient_Release(
+         snd_pcm_close(This->pcm_handle);
+         if(This->initted){
+             EnterCriticalSection(&g_sessions_lock);
++            sprintf(pipe_fn,"/tmp/audio-out%d",This->snd_id);
++            unlink(pipe_fn);
++            close(This->snd_fd);
++            g_pipe[This->snd_id]=0;
++
+             list_remove(&This->entry);
+             LeaveCriticalSection(&g_sessions_lock);
+         }
+@@ -899,11 +914,20 @@ static HRESULT get_audio_session(const G
+     return S_OK;
+ }
+ 
++typedef struct
++{
++    UINT32 nSamplesPerSec;
++    UINT32 nChannels;
++    UINT32 nBitsPerSample;
++} pcm_pipe_hdr;
++
+ static HRESULT WINAPI AudioClient_Initialize(IAudioClient *iface,
+         AUDCLNT_SHAREMODE mode, DWORD flags, REFERENCE_TIME duration,
+         REFERENCE_TIME period, const WAVEFORMATEX *fmt,
+         const GUID *sessionguid)
+ {
++    char pipe_fn[MAX_PATH];
++    WAVEFORMATEXTENSIBLE *fmtex;
+     ACImpl *This = impl_from_IAudioClient(iface);
+     snd_pcm_sw_params_t *sw_params = NULL;
+     snd_pcm_format_t format;
+@@ -1097,9 +1121,12 @@ static HRESULT WINAPI AudioClient_Initia
+      * ALSA period 220 vs.  221 frames in mmdevapi and
+      *      buffer 883 vs. 2205 frames in mmdevapi! */
+     This->bufsize_frames = MulDiv(duration, fmt->nSamplesPerSec, 10000000);
++#ifdef XSDL_ANDROID
++    This->hidden_frames = 0;
++#else
+     This->hidden_frames = This->alsa_period_frames + This->mmdev_period_frames +
+         MulDiv(fmt->nSamplesPerSec, EXTRA_SAFE_RT, 10000000);
+-
++#endif
+     /* Check if the ALSA buffer is so small that it will run out before
+      * the next MMDevAPI period tick occurs. Allow a little wiggle room
+      * with 120% of the period time. */
+@@ -1140,6 +1167,7 @@ static HRESULT WINAPI AudioClient_Initia
+ 
+     hr = get_audio_session(sessionguid, This->parent, fmt->nChannels,
+             &This->session);
++
+     if(FAILED(hr)){
+         LeaveCriticalSection(&g_sessions_lock);
+         goto exit;
+@@ -1147,6 +1175,49 @@ static HRESULT WINAPI AudioClient_Initia
+ 
+     list_add_tail(&This->session->clients, &This->entry);
+ 
++#ifdef XSDL_ANDROID
++    fmtex = (WAVEFORMATEXTENSIBLE *)fmt;
++    if(fmt->wFormatTag == WAVE_FORMAT_PCM ||
++      (fmt->wFormatTag == WAVE_FORMAT_EXTENSIBLE &&
++       IsEqualGUID(&fmtex->SubFormat, &KSDATAFORMAT_SUBTYPE_PCM))) {
++
++        /* find a free audio pipe */
++        for (i = 0; i < 4; i++)
++        {
++            if (g_pipe[i] == 0)
++            break;
++        }
++        if (i >= 4)
++        {
++            LeaveCriticalSection(&g_sessions_lock);
++            goto exit;
++        }
++
++        sprintf(pipe_fn,"/tmp/audio-out%d",i);
++        mkfifo(pipe_fn,0666);
++        This->snd_fd= open(pipe_fn,O_RDWR);
++
++
++        {
++            int v;
++            pcm_pipe_hdr hdr;
++            hdr.nSamplesPerSec = rate;
++            hdr.nChannels = fmt->nChannels;
++            hdr.nBitsPerSample = fmt->wBitsPerSample;
++
++            v = fcntl(This->snd_fd, F_GETFL);
++
++            if (!(v & O_NONBLOCK))
++                fcntl(This->snd_fd, F_SETFL, v|O_NONBLOCK);
++
++            write(This->snd_fd, &hdr, sizeof(hdr));
++        }
++
++        g_pipe[i]=1;
++        This->snd_id = i;
++    }
++#endif
++
+     LeaveCriticalSection(&g_sessions_lock);
+ 
+     This->initted = TRUE;
+@@ -1549,7 +1620,11 @@ static snd_pcm_sframes_t alsa_write_best
+         snd_pcm_uframes_t frames, ACImpl *This, BOOL mute)
+ {
+     snd_pcm_sframes_t written;
+-
++#ifdef XSDL_ANDROID
++    written = write(This->snd_fd, buf ,frames * This->fmt->nBlockAlign);
++    if (written >-0)
++        written /= This->fmt->nBlockAlign;
++#else
+     if(mute){
+         int err;
+         if((err = snd_pcm_format_set_silence(This->alsa_format, buf,
+@@ -1577,7 +1652,7 @@ static snd_pcm_sframes_t alsa_write_best
+ 
+         written = snd_pcm_writei(handle, buf, frames);
+     }
+-
++#endif
+     return written;
+ }
+ 
+@@ -1589,9 +1664,9 @@ static void alsa_write_data(ACImpl *This
+     BYTE *buf =
+         This->local_buffer + (This->lcl_offs_frames * This->fmt->nBlockAlign);
+ 
++#ifndef XSDL_ANDROID
+     /* this call seems to be required to get an accurate snd_pcm_state() */
+     avail = snd_pcm_avail_update(This->pcm_handle);
+-
+     if(snd_pcm_state(This->pcm_handle) == SND_PCM_STATE_XRUN ||
+             avail > This->alsa_bufsize_frames){
+         TRACE("XRun state avail %ld, recovering\n", avail);
+@@ -1608,6 +1683,7 @@ static void alsa_write_data(ACImpl *This
+             WARN("snd_pcm_prepare failed: %d (%s)\n", err, snd_strerror(err));
+     }else
+         TRACE("pad: %ld\n", This->alsa_bufsize_frames - avail);
++#endif
+ 
+     if(This->held_frames == 0)
+         return;
+@@ -1619,10 +1695,25 @@ static void alsa_write_data(ACImpl *This
+ 
+     max_period = max(This->mmdev_period_frames, This->alsa_period_frames);
+ 
++#ifdef XSDL_ANDROID
++    write_limit = This->held_frames;  /* write all available frames to named pipe */
++/*
++    write_limit = 0;
++    in_alsa = This->alsa_bufsize_frames - avail;
++
++    while(in_alsa + write_limit < max_period * 6)
++        write_limit += max_period;
++    if(write_limit == 0)
++        return;
++
++    to_write = min(to_write, write_limit);
++*/
++#else
+     /* try to keep 3 ALSA periods or 3 MMDevAPI periods in the ALSA buffer and
+      * no more */
+     write_limit = 0;
+     in_alsa = This->alsa_bufsize_frames - avail;
++
+     while(in_alsa + write_limit < max_period * 3)
+         write_limit += max_period;
+     if(write_limit == 0)
+@@ -1650,6 +1741,7 @@ static void alsa_write_data(ACImpl *This
+         }else
+             WARN("Couldn't allocate lead-in, expect underrun\n");
+     }
++#endif
+ 
+     written = alsa_write_best_effort(This->pcm_handle, buf, to_write, This,
+             This->session->mute);
+@@ -1672,6 +1764,7 @@ static void alsa_write_data(ACImpl *This
+         written = alsa_write_best_effort(This->pcm_handle, This->local_buffer,
+                 min(This->held_frames, write_limit - written), This,
+                 This->session->mute);
++
+         if(written < 0){
+             WARN("Couldn't write: %ld (%s)\n", written, snd_strerror(written));
+             return;
+@@ -2420,6 +2513,15 @@ static HRESULT WINAPI AudioClock_GetPosi
+         WARN("snd_pcm_delay failed in state %u: %d (%s)\n", alsa_state, err, snd_strerror(err));
+     }
+ 
++ #ifdef FIONREAD
++     {
++             int l;
++
++             if (ioctl(This->snd_fd, FIONREAD, &l) >= 0 && l > 0)
++                 delay_frames = ((size_t) l)/4;
++     }
++ #endif
++
+     if(This->dataflow == eRender){
+         position = written_frames - held_frames; /* maximum */
+         if(!This->started || alsa_state > SND_PCM_STATE_RUNNING)
