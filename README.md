@@ -120,10 +120,10 @@ Launch a terminal emulator and install wine:
 Copy executable and driver from SDCARD:
 
         cd /
-        cp /sdcard/wine-audio
-        chmod 777 wine-audio
+        cp /sdcard/wine-audio .
+        chmod 777 wine-audio  
         cd /usr/lib/i386-linux-gnu/wine
-        cp /sdcard/winealsa.drv.so
+        cp /sdcard/winealsa.drv.so .
         chmod 644 winealsa.drv.so
 
 Add a command to lauch wine-audo in /proot.sh (It may be difficult to edit file on tablet. You can transfer proot.sh to host , edit it with unix text file freindly editor and transfer it back)
@@ -133,7 +133,6 @@ Add  "./wine-audio &" to /proot.sh right after these line:
         ...
         
         done
-        
         echo "STORAGE $STORAGE"
         
         ./wine-audio &    <--- new command
