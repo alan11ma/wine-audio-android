@@ -124,10 +124,15 @@ chmod 644 winealsa.drv.so
 Add a command to lauch wine-audo in /proot.sh (It may be difficult to edit file on tablet. You can transfer proot.sh to host , edit it with unix text file freindly editor and transfer it back)
 
 Add  "./wine-audio &" to /root.sh right after these line:
+
 ...
+
 done
+
 echo "STORAGE $STORAGE"
+
 ./wine-audio &    <--- new command
+
 ...
 
 Wine-audio server will now start whenever you launch Debian chroot in Android 
