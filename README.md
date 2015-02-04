@@ -47,6 +47,7 @@ deb-src http://http.debian.net/debian/ wheezy-backports contrib main
 Install development packages:
 
 sudo apt-get install bison libpixman-1-dev \
+
 libxfont-dev libxkbfile-dev libpciaccess-dev \
 
 xutils-dev xcb-proto python-xcbgen xsltproc \
@@ -90,11 +91,14 @@ sudo apt-get source wine
 apply alsa driver patch and build wine:
 
 cd wine-1.4.1
+
 patch -p1 < wine-alsa-pipe_sink.patch
+
 ./configure
+
 make
 
-Fine patched alsa driver module under dlls/winealsa.drv/winealsa.drv.so
+Find patched alsa driver module under dlls/winealsa.drv/winealsa.drv.so
 
 INSTALLATION:
 
