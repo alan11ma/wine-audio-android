@@ -15,7 +15,7 @@ WINE- In Ubuntun/Debain host create a x86 build environment following pelya's xs
 
 Detail steps:
 
-Prepare debootstrp:
+Prepare chroot environment:
 
         sudo apt-get install qemu-user-static
         
