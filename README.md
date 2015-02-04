@@ -129,7 +129,7 @@ Copy executable and driver from SDCARD:
         cp /sdcard/winealsa.drv.so .
         chmod 644 winealsa.drv.so
 
-Add a command to lauch wine-audio in /proot.sh (It may be difficult to edit file on tablet. You can transfer proot.sh to host , edit it with unix text file freindly editor and transfer it back)
+Add a command to lauch wine-audio in /proot.sh (It may be difficult to edit file on tablet. You can transfer proot.sh to host , edit it with unix text file friendly editor and transfer it back)
 
 Add  "./wine-audio &" to /proot.sh right after these line:
 
