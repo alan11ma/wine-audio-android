@@ -125,6 +125,7 @@ Copy executable and driver from SDCARD:
         cp /sdcard/wine-audio .
         chmod 777 wine-audio  
         cd /usr/lib/i386-linux-gnu/wine
+        mv winealsa.drv.so winealsa.drv.so-official
         cp /sdcard/winealsa.drv.so .
         chmod 644 winealsa.drv.so
 
