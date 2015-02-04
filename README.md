@@ -6,7 +6,7 @@ Includes a complement patch that modify Wine-1.4.1 alsa driver, make it write pc
 
 COMPILATION:
 
-PCM Server- add Android NDK installed directory to $PATH and run ./build.sh, result executable is wine-audio.
+PCM Server- add Android NDK location to $PATH and run ./build.sh, result executable is wine-audio.
 By default only x86 PIE(position independent executable) is build and can only be running in device runing x86 Android 4.1 and greater.
 
 WINE- In Ubuntun/Debain host create a x86 build environment following pelya's debian-server guide:
